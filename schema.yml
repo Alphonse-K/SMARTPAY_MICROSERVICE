@@ -1,0 +1,895 @@
+openapi: 3.0.3
+info:
+  title: SmartPay Microservice API
+  version: 1.0.0
+  description: Comprehensive API for electricity payments, TV subscriptions, airtime,
+    and remittance services
+paths:
+  /api/v1/account/change-password/:
+    post:
+      operationId: v1_account_change_password_create
+      description: Update the payment password for the SmartPay account.
+      summary: Change payment password
+      tags:
+      - Account Management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              ValidRequest:
+                value:
+                  new_password: NewSecurePassword123!
+                summary: Valid Request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  message:
+                    type: string
+                    example: Password updated successfully
+          description: Password changed successfully
+        '400':
+          description: Invalid request data
+        '500':
+          description: Failed to change password
+  /api/v1/account/customer-details/:
+    post:
+      operationId: v1_account_customer_details_create
+      description: Retrieve customer information for prepayment meters including account
+        status, arrears, and consumption history.
+      summary: Get customer details
+      tags:
+      - Prepayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              CustomerInquiry:
+                value:
+                  meter_number: '46000587157'
+                summary: Customer Inquiry
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  name:
+                    type: string
+                    example: HAWA DIAKHABY
+                  device:
+                    type: string
+                    example: '46000587157'
+                  arrear_amt:
+                    type: string
+                    example: '0.00'
+                  buy_times:
+                    type: string
+                    example: '362'
+          description: Customer details retrieved successfully
+        '400':
+          description: Invalid meter number
+        '500':
+          description: Failed to retrieve customer details
+  /api/v1/account/details/:
+    post:
+      operationId: v1_account_details_create
+      description: Retrieve account information including balances, account holder
+        name, and account status.
+      summary: Get account details
+      tags:
+      - Account Management
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  name:
+                    type: string
+                    example: CASHMOOV
+                  accounts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        amt:
+                          type: string
+                          example: '1975000.00'
+                        currency:
+                          type: string
+                          example: GNF
+          description: Account details retrieved successfully
+        '500':
+          description: Failed to retrieve account details
+  /api/v1/account/transfer/:
+    post:
+      operationId: v1_account_transfer_create
+      description: Transfer funds to a sub-agency or Point of Sales terminal.
+      summary: Transfer amount to sub-agency or POS
+      tags:
+      - Account Management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              TransferRequest:
+                value:
+                  transaction_id: TRANS123456
+                  recipient_value: POS001
+                  amount: 50000.0
+                summary: Transfer Request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  trans_id:
+                    type: string
+                    example: '1234567890'
+                  amount:
+                    type: string
+                    example: '50000.00'
+                  recipient:
+                    type: string
+                    example: POS001
+          description: Transfer completed successfully
+        '400':
+          description: Invalid transfer request
+        '500':
+          description: Transfer failed
+  /api/v1/auth/login/:
+    post:
+      operationId: v1_auth_login_create
+      tags:
+      - v1
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/refresh/:
+    post:
+      operationId: v1_auth_refresh_create
+      tags:
+      - v1
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/postpayment/bill/details/:
+    post:
+      operationId: v1_postpayment_bill_details_create
+      description: Retrieve detailed information about a specific electricity bill.
+      summary: Get bill details
+      tags:
+      - Postpayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              BillDetailsRequest:
+                value:
+                  bill_code: BILL001
+                summary: Bill Details Request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  bill_code:
+                    type: string
+                    example: BILL001
+                  amount:
+                    type: string
+                    example: '25000.00'
+                  consumption:
+                    type: string
+                    example: 150.25 kWh
+          description: Bill details retrieved successfully
+        '400':
+          description: Invalid bill code
+        '500':
+          description: Failed to retrieve bill details
+  /api/v1/postpayment/bill/pay/:
+    post:
+      operationId: v1_postpayment_bill_pay_create
+      description: Process payment for an outstanding electricity bill for postpaid
+        customers.
+      summary: Pay electricity bill
+      tags:
+      - Postpayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              BillPaymentRequest:
+                value:
+                  transaction_id: BILLPAY123456
+                  bill_code: BILL001
+                  amount: 25000.0
+                  phone: '623040031'
+                  verify_code: VERIFY123
+                summary: Bill Payment Request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  trans_id:
+                    type: string
+                    example: BILLPAY123456
+                  bill_code:
+                    type: string
+                    example: BILL001
+                  paid_amt:
+                    type: string
+                    example: '25000.00'
+          description: Bill payment completed successfully
+        '400':
+          description: Invalid payment request
+        '500':
+          description: Bill payment failed
+  /api/v1/postpayment/bill/transaction/details/:
+    post:
+      operationId: v1_postpayment_bill_transaction_details_create
+      description: Retrieve detailed information about a specific bill payment transaction.
+      summary: Get bill transaction details
+      tags:
+      - Postpayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              TransactionDetailsRequest:
+                value:
+                  transaction_code: BILLPAY123456
+                summary: Transaction Details Request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  trans_id:
+                    type: string
+                    example: BILLPAY123456
+                  bill_code:
+                    type: string
+                    example: BILL001
+                  paid_amt:
+                    type: string
+                    example: '25000.00'
+          description: Transaction details retrieved successfully
+        '400':
+          description: Invalid transaction code
+        '500':
+          description: Failed to retrieve transaction details
+  /api/v1/postpayment/bill/transactions/inquiry/:
+    post:
+      operationId: v1_postpayment_bill_transactions_inquiry_create
+      description: Retrieve a list of recent bill payment transactions for a specific
+        customer.
+      summary: Inquiry bill transactions
+      tags:
+      - Postpayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              BillTransactionsInquiry:
+                value:
+                  customer_reference: CUST123456
+                summary: Bill Transactions Inquiry
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  transactions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        trans_id:
+                          type: string
+                          example: BILLPAY123456
+                        amount:
+                          type: string
+                          example: '25000.00'
+                        trans_time:
+                          type: string
+                          format: date-time
+                          example: '2025-08-18 13:07:43'
+          description: Bill transactions retrieved successfully
+        '400':
+          description: Invalid customer reference
+        '500':
+          description: Failed to retrieve bill transactions
+  /api/v1/postpayment/bills/:
+    post:
+      operationId: v1_postpayment_bills_create
+      description: Retrieve all outstanding bills for a postpaid customer.
+      summary: Get customer bills
+      tags:
+      - Postpayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              BillsRequest:
+                value:
+                  customer_reference: CUST123456
+                summary: Bills Request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  bills:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        bill_code:
+                          type: string
+                          example: BILL001
+                        amount:
+                          type: string
+                          example: '25000.00'
+                        due_date:
+                          type: string
+                          format: date
+                          example: '2025-09-01'
+          description: Customer bills retrieved successfully
+        '400':
+          description: Invalid customer reference
+        '500':
+          description: Failed to retrieve customer bills
+  /api/v1/prepayment/arrear/details/:
+    post:
+      operationId: v1_prepayment_arrear_details_create
+      description: Retrieve detailed information about a specific arrear payment transaction.
+      summary: Get arrear payment details
+      tags:
+      - Prepayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              ArrearDetailsRequest:
+                value:
+                  transaction_code: ARR123456789
+                summary: Arrear Details Request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  trans_id:
+                    type: string
+                    example: ARR123456789
+                  arrear_amt:
+                    type: string
+                    example: '7500.00'
+                  paid_amt:
+                    type: string
+                    example: '7500.00'
+          description: Arrear payment details retrieved successfully
+        '400':
+          description: Invalid transaction code
+        '500':
+          description: Failed to retrieve payment details
+  /api/v1/prepayment/arrear/inquiry/:
+    post:
+      operationId: v1_prepayment_arrear_inquiry_create
+      description: Retrieve a list of recent arrear payment transactions for a specific
+        meter.
+      summary: Inquiry arrear transactions
+      tags:
+      - Prepayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              ArrearInquiryRequest:
+                value:
+                  meter_number: '46000587157'
+                summary: Arrear Inquiry Request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  details:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        trans_id:
+                          type: string
+                          example: ARR123456789
+                        amount:
+                          type: string
+                          example: '7500.00'
+                        trans_time:
+                          type: string
+                          format: date-time
+                          example: '2025-08-18 13:07:43'
+          description: Arrear transactions retrieved successfully
+        '400':
+          description: Invalid meter number
+        '500':
+          description: Failed to retrieve arrear transactions
+  /api/v1/prepayment/arrear/pay/:
+    post:
+      operationId: v1_prepayment_arrear_pay_create
+      description: Process payment for outstanding electricity arrears on a prepaid
+        meter.
+      summary: Pay electricity arrear
+      tags:
+      - Prepayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              ArrearPaymentRequest:
+                value:
+                  transaction_id: ARR123456789
+                  meter_number: '46000587157'
+                  amount: 7500.0
+                  phone: '623040031'
+                  verify_code: VERIFY123
+                summary: Arrear Payment Request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  trans_id:
+                    type: string
+                    example: ARR123456789
+                  arrear_amt:
+                    type: string
+                    example: '7500.00'
+                  paid_amt:
+                    type: string
+                    example: '7500.00'
+          description: Arrear payment completed successfully
+        '400':
+          description: Invalid payment request
+        '500':
+          description: Arrear payment failed
+  /api/v1/prepayment/customer/details/:
+    post:
+      operationId: v1_prepayment_customer_details_create
+      description: Retrieve customer information for prepayment meters including account
+        status, arrears, and consumption history.
+      summary: Get customer details
+      tags:
+      - Prepayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              CustomerInquiry:
+                value:
+                  meter_number: '46000587157'
+                summary: Customer Inquiry
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  name:
+                    type: string
+                    example: HAWA DIAKHABY
+                  device:
+                    type: string
+                    example: '46000587157'
+                  arrear_amt:
+                    type: string
+                    example: '0.00'
+                  buy_times:
+                    type: string
+                    example: '362'
+          description: Customer details retrieved successfully
+        '400':
+          description: Invalid meter number
+        '500':
+          description: Failed to retrieve customer details
+  /api/v1/prepayment/sale/details/:
+    post:
+      operationId: v1_prepayment_sale_details_create
+      description: Retrieve detailed information about a specific power sale transaction.
+      summary: Get sale details
+      tags:
+      - Prepayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              SaleDetailsRequest:
+                value:
+                  transaction_code: 00000250818130743721
+                summary: Sale Details Request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  trans_id:
+                    type: string
+                    example: '7586689056677899'
+                  kwh:
+                    type: string
+                    example: '28.06'
+                  trans_time:
+                    type: string
+                    format: date-time
+                    example: '2025-08-18 13:07:43'
+          description: Sale details retrieved successfully
+        '400':
+          description: Invalid transaction code
+        '500':
+          description: Failed to retrieve sale details
+  /api/v1/prepayment/sales/inquiry/:
+    post:
+      operationId: v1_prepayment_sales_inquiry_create
+      description: Retrieve a list of recent power sale transactions for a specific
+        meter.
+      summary: Inquiry sales transactions
+      tags:
+      - Prepayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              SalesInquiryRequest:
+                value:
+                  meter_number: '46000587157'
+                  count: 5
+                summary: Sales Inquiry Request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  details:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        trans_id:
+                          type: string
+                          example: '7586689056677899'
+                        amount:
+                          type: string
+                          example: '15000.00'
+                        trans_time:
+                          type: string
+                          format: date-time
+                          example: '2025-08-18 13:07:43'
+          description: Sales transactions retrieved successfully
+        '400':
+          description: Invalid request parameters
+        '500':
+          description: Failed to retrieve transactions
+  /api/v1/prepayment/sell/:
+    post:
+      operationId: v1_prepayment_sell_create
+      description: Process electricity power purchase for prepaid meters. Generates
+        and activates electricity tokens.
+      summary: Sell electricity power
+      tags:
+      - Prepayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+            examples:
+              PowerSaleRequest:
+                value:
+                  transaction_id: '7586689056677899'
+                  meter_number: '46000587157'
+                  amount: 15000.0
+                  phone: '623040031'
+                  channel: '04'
+                  verify_code: DONOTVERIFYDATA
+                summary: Power Sale Request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SmartPayRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: integer
+                    example: 0
+                  trans_id:
+                    type: string
+                    example: '7586689056677899'
+                  kwh:
+                    type: string
+                    example: '28.06'
+                  tokens:
+                    type: string
+                    example: 4465 0988 9012 0661 2849
+                  amt:
+                    type: number
+                    example: 15000.0
+          description: Power sale completed successfully
+        '400':
+          description: Invalid sale request
+        '500':
+          description: Power sale failed
+  /api/v1/token/status/:
+    get:
+      operationId: v1_token_status_retrieve
+      description: Retrieve the current status and validity of the authentication
+        token used for SmartPay API calls.
+      summary: Get authentication token status
+      tags:
+      - Authentication
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: abc123...
+                  is_active:
+                    type: boolean
+                    example: true
+                  start_time:
+                    type: string
+                    format: date-time
+                    example: '2025-08-19T22:00:00Z'
+                  end_time:
+                    type: string
+                    format: date-time
+                    example: '2025-08-19T23:00:00Z'
+          description: Token status retrieved successfully
+        '500':
+          description: Token service unavailable
+components:
+  schemas:
+    SmartPayRequest:
+      type: object
+      properties:
+        meter_number:
+          type: string
+        customer_reference:
+          type: string
+        bill_code:
+          type: string
+        transaction_id:
+          type: string
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        phone:
+          type: string
+        transaction_code:
+          type: string
+        channel:
+          type: string
+          default: '04'
+        verify_code:
+          type: string
+        count:
+          type: integer
+          default: 5
+        new_password:
+          type: string
+        recipient_value:
+          type: string
+tags:
+- name: Authentication
+  description: Token management endpoints
+- name: Account
+  description: User account operations
+- name: Prepayment
+  description: Prepaid meter services
+- name: Postpayment
+  description: Postpaid billing services
+- name: Documentation
+  description: API documentation endpoints

@@ -1,0 +1,31 @@
+# traefik/traefik.yml
+api:
+  dashboard: true
+  insecure: true  # Disable for production, use auth instead
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+      
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+
+# certificatesResolvers:
+#   myresolver:
+#     acme:
+#       email: "admin@yourdomain.com"
+#       storage: "/etc/traefik/acme.json"
+#       httpChallenge:
+#         entryPoint: web
+
+log:
+  level: INFO
+
+
+accessLog:
+  filePath: "/traefik.log"
+  bufferingSize: 100
