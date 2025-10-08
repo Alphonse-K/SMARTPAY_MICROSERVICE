@@ -16,15 +16,17 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create all necessary directories with proper permissions
-RUN mkdir -p /app/staticfiles /app/mediafiles && \
-    chmod 755 /app/staticfiles /app/mediafiles
+# Create all necessary directories with proper permissions AS ROOT
+RUN mkdir -p /app/staticfiles /app/mediafiles /app/logs && \
+    chmod 755 /app/staticfiles /app/mediafiles /app/logs && \
+    touch /app/logs/debug.log && \
+    chmod 644 /app/logs/debug.log
 
 # Create non-root user
 RUN useradd -m -u 1000 django
 
 # Change ownership of directories to django user
-RUN chown -R django:django /app/staticfiles /app/mediafiles
+RUN chown -R django:django /app/staticfiles /app/mediafiles /app/logs
 
 # Copy requirements first for better caching
 COPY --chown=django:django requirements.txt .
@@ -40,14 +42,14 @@ ENV PATH="/home/django/.local/bin:${PATH}"
 COPY --chown=django:django . .
 
 # Collect static files
-RUN python manage.py collectstatic --noinput
+RUN python3 manage.py collectstatic --noinput
 
 # Expose port
 EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health/ || exit 1
+    CMD curl -f http://127.0.0.1:8000/health/ || exit 1
 
 # Run application with gunicorn
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120", "--access-logfile", "-"]

@@ -19,7 +19,7 @@ from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
-
+from smartpay_integration.views import RootView
 # Health check
 
 @require_GET
@@ -29,6 +29,7 @@ def health_check(request):
 
 
 urlpatterns = [
+    path("", RootView.as_view(), name="root"),
     # Health check
     path('health/', health_check, name='health-check'),
 

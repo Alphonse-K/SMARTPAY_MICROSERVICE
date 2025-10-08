@@ -8,8 +8,17 @@ from .serializers import SmartPayRequestSerializer
 import logging
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
+from rest_framework.views import APIView
 
 logger = logging.getLogger(__name__)
+
+class RootView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            "message": "Welcome to the API root"
+        })
 
 
 # Account details Functions
