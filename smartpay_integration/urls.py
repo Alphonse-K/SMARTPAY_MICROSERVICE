@@ -31,7 +31,7 @@ urlpatterns = [
     
     # Prepayment Meter Endpoints
     path('prepayment/customer/details/', get_customer_details, name='prepayment-customer-details'),
-    path('prepayment/sell/', sell_power, name='sell-power'),
+    path('prepayment/sell/', sell_power, name='sell_power'),
     path('prepayment/sale/details/', get_sale_details, name='sale-details'),
     path('prepayment/sales/inquiry/', inquiry_sales_transactions, name='sales-inquiry'),
     path('prepayment/arrear/pay/', pay_arrear, name='pay-arrear'),
@@ -41,7 +41,7 @@ urlpatterns = [
     # # Post-payment Meter Endpoints
     path('postpayment/bills/', get_customer_bills, name='customer-bills'),
     path('postpayment/bill/details/', get_bill_details, name='bill-details'),
-    path('postpayment/bill/pay/', pay_bill, name='pay-bill'),
+    path('postpayment/bill/pay/', pay_bill, name='pay_bill'),
     path('postpayment/bill/transaction/details/', get_bill_transaction_details, name='bill-transaction-details'),
     path('postpayment/bill/transactions/inquiry/', inquiry_bill_transactions, name='bill-transactions-inquiry'),
 ]

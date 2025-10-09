@@ -20,10 +20,10 @@ services:
     networks:
       - proxy
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.django.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.django.entrypoints=web"
-      - "traefik.http.services.django.loadbalancer.server.port=8000"
+      # - "traefik.enable=true"
+      # - "traefik.http.routers.django.rule=Host(`${DOMAIN}`)"
+      # - "traefik.http.routers.django.entrypoints=web"
+      # - "traefik.http.services.django.loadbalancer.server.port=8000"
       # - "traefik.http.routers.django.middlewares=redirect-to-https@docker"
       # - "traefik.http.routers.django-secure.rule=Host(`${DOMAIN}`)"
       # - "traefik.http.routers.django-secure.entrypoints=proxysecure"
@@ -31,6 +31,13 @@ services:
       # - "traefik.http.routers.django-secure.tls.certresolver=myresolver"
       # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       # - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.django.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.django.entrypoints=websecure"
+      - "traefik.http.routers.django.tls=true"
+      - "traefik.http.routers.django.service=django"
+      - "traefik.http.services.django.loadbalancer.server.port=8000"
+
     expose:
       - "8000"
   # PostgreSQL Database

@@ -9,6 +9,12 @@ import logging
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
 from rest_framework.views import APIView
+from smartpay_integration.models import APILog
+from .services.utils import acquire_locks, release_locks
+import time
+from django.utils import timezone
+from decimal import Decimal
+
 
 logger = logging.getLogger(__name__)
 
@@ -21,28 +27,6 @@ class RootView(APIView):
         })
 
 
-# Account details Functions
-
-# @extend_schema(
-#     summary="Get authentication token status",
-#     description="Retrieve the current status and validity of the authentication token used for SmartPay API calls.",
-#     tags=['Authentication'],
-#     responses={
-#         200: OpenApiResponse(
-#             description="Token status retrieved successfully",
-#             response={
-#                 "type": "object",
-#                 "properties": {
-#                     "token": {"type": "string", "example": "abc123..."},
-#                     "is_active": {"type": "boolean", "example": True},
-#                     "start_time": {"type": "string", "format": "date-time", "example": "2025-08-19T22:00:00Z"},
-#                     "end_time": {"type": "string", "format": "date-time", "example": "2025-08-19T23:00:00Z"}
-#                 }
-#             }
-#         ),
-#         500: OpenApiResponse(description="Token service unavailable")
-#     }
-# )
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_token_status(request):
@@ -297,34 +281,98 @@ def get_customer_details(request):
         )
     ]
 )
+
+def sanitize_for_json(data):
+    """Convert any Decimals or non-serializable types recursively to JSON-safe objects."""
+    if isinstance(data, Decimal):
+        return float(data)
+    elif isinstance(data, dict):
+        return {str(k): sanitize_for_json(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_for_json(i) for i in data]
+    elif isinstance(data, tuple):
+        return tuple(sanitize_for_json(i) for i in data)
+    else:
+        return data
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def sell_power(request):
-    """Sell power (prepayment)"""
+    """Sell power with transaction locking and detailed logging."""
     serializer = SmartPayRequestSerializer(data=request.data)
     if not serializer.is_valid():
+        APILog.objects.create(
+            endpoint="sell_power_validation_error",
+            request_data=sanitize_for_json(request.data),
+            response_data=sanitize_for_json({"errors": serializer.errors}),
+            status_code=400,
+            duration=0.0
+        )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    try:
-        service = SmartPayService()
 
-        # Get the amount as string with 2 decimal places
+    transaction_start = timezone.now()
+    lock_keys = None
+
+    try:
+        transaction_id = serializer.validated_data['transaction_id']
+        meter_number = serializer.validated_data['meter_number']
         amount_str = "{:.2f}".format(float(serializer.validated_data['amount']))
+
+        lock_keys, error_message = acquire_locks(
+            transaction_id, meter_number, amount_str, "sell_power"
+        )
+
+        if error_message:
+            APILog.objects.create(
+                endpoint="sell_power",
+                request_data=sanitize_for_json(serializer.validated_data),
+                response_data=sanitize_for_json({"error": error_message}),
+                status_code=423,
+                duration=(timezone.now() - transaction_start).total_seconds()
+            )
+            return Response({'error': error_message}, status=status.HTTP_423_LOCKED)
+
+        service = SmartPayService()
+        service_start = time.time()
         result = service.sell_power(
-            trans_id=serializer.validated_data['transaction_id'],
-            meter_number=serializer.validated_data['meter_number'],
+            trans_id=transaction_id,
+            meter_number=meter_number,
             amount=amount_str,
             phone=serializer.validated_data['phone'],
             channel=serializer.validated_data['channel'],
             verify_code=serializer.validated_data.get('verify_code', '')
         )
-        return Response(result)
-    except Exception as e:
-        logger.error(f"Error selling power: {str(e)}")
-        return Response(
-            {'error': str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        service_duration = time.time() - service_start
+
+        # Convert everything safely
+        safe_result = sanitize_for_json(result)
+
+        APILog.objects.create(
+            endpoint="sell_power",
+            request_data=sanitize_for_json(serializer.validated_data),
+            response_data=safe_result,
+            status_code=200,
+            duration=(timezone.now() - transaction_start).total_seconds()
         )
+
+        return Response(safe_result, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        APILog.objects.create(
+            endpoint="sell_power",
+            request_data=sanitize_for_json(serializer.validated_data),
+            response_data=sanitize_for_json({"error": str(e)}),
+            status_code=500,
+            duration=(timezone.now() - transaction_start).total_seconds()
+        )
+
+        logger.error(f"Error selling power: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    finally:
+        release_locks(lock_keys)
+
 
 @extend_schema(
     summary="Get sale details",
@@ -758,27 +806,90 @@ def get_bill_details(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def pay_bill(request):
-    """Pay the bill (Post-Payment)"""
+    """Pay the bill (Post-Payment) with double locking and transaction logging"""
     serializer = SmartPayRequestSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    transaction_start = timezone.now()
+    lock_keys = None
+    
     try:
+        # Extract data
+        transaction_id = serializer.validated_data['transaction_id']
+        bill_code = serializer.validated_data['bill_code']
+        amount_str = "{:.2f}".format(float(serializer.validated_data['amount']))
+        phone = serializer.validated_data['phone']
+        verify_code = serializer.validated_data['verify_code']
+        
+        # Acquire both locks
+        lock_keys, error_message = acquire_locks(
+            transaction_id, bill_code, amount_str, "pay_bill"
+        )
+        
+        if error_message:
+            # Log the lock failure
+            APILog.objects.create(
+                endpoint="pay_bill",
+                request_data=serializer.validated_data,
+                response_data={"error": error_message},
+                status_code=423,
+                duration=0.0
+            )
+            return Response(
+                {'error': error_message},
+                status=status.HTTP_423_LOCKED
+            )
+        
+        # Process the transaction
+        service_start_time = time.time()
         service = SmartPayService()
         result = service.pay_bill(
-            trans_id=serializer.validated_data['transaction_id'],
-            bill_code=serializer.validated_data['bill_code'],
-            amount="{:.2f}".format(float(serializer.validated_data['amount'])),
-            phone=serializer.validated_data['phone'],
-            verify_code=serializer.validated_data['verify_code']
+            trans_id=transaction_id,
+            bill_code=bill_code,
+            amount=amount_str,
+            phone=phone,
+            verify_code=verify_code
         )
+        service_duration = time.time() - service_start_time
+        
+        # Log successful transaction
+        APILog.objects.create(
+            endpoint="pay_bill_success",
+            request_data={
+                'transaction_id': transaction_id,
+                'bill_code': bill_code,
+                'amount': amount_str,
+                'phone': phone,
+                'verify_code': verify_code
+            },
+            response_data=result,
+            status_code=200,
+            duration=service_duration
+        )
+        
         return Response(result)
+        
     except Exception as e:
-        logger.error(f"Error paying the bill (Post-Payment): {str(e)}")
+        # Log the error
+        error_duration = (timezone.now() - transaction_start).total_seconds()
+        APILog.objects.create(
+            endpoint="pay_bill",
+            request_data=serializer.validated_data if serializer.is_valid() else request.data,
+            response_data={"error": str(e)},
+            status_code=500,
+            duration=error_duration
+        )
+        
+        logger.error(f"Error paying bill: {str(e)}")
         return Response(
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+        
+    finally:
+        # Always release locks
+        release_locks(lock_keys)
     
 @extend_schema(
     summary="Get bill transaction details",
